@@ -135,6 +135,146 @@ RSpec.describe Project, type: :model do
     end
   end
 
+  describe ".search" do
+    let!(:website) { create(:project, name: "Website Redesign") }
+    let!(:mobile) { create(:project, name: "Mobile App") }
+
+    it "matches a part of the name" do
+      expect(described_class.search("redes")).to contain_exactly(website)
+    end
+
+    it "ignores case" do
+      expect(described_class.search("WEBSITE")).to contain_exactly(website)
+    end
+
+    it "returns nothing when no name matches" do
+      expect(described_class.search("Unknown")).to be_empty
+    end
+
+    it "filters when the term has exactly 3 characters" do
+      expect(described_class.search("Mob")).to contain_exactly(mobile)
+    end
+
+    it "returns all projects when the term has fewer than 3 characters" do
+      expect(described_class.search("Mo")).to contain_exactly(website, mobile)
+    end
+
+    it "returns all projects when the term is nil" do
+      expect(described_class.search(nil)).to contain_exactly(website, mobile)
+    end
+
+    it "does not count surrounding whitespace towards the minimum length" do
+      expect(described_class.search("  Mo  ")).to contain_exactly(website, mobile)
+    end
+
+    context "with LIKE wildcards in the term" do
+      it "treats % as a literal character" do
+        percent = create(:project, name: "100% Done")
+        create(:project, name: "1000 Done")
+
+        expect(described_class.search("100%")).to contain_exactly(percent)
+      end
+
+      it "does not let % match every project" do
+        expect(described_class.search("%%%")).to be_empty
+      end
+
+      it "treats _ as a literal character" do
+        underscore = create(:project, name: "foo_bar Project")
+        create(:project, name: "fooxbar Project")
+
+        expect(described_class.search("foo_bar")).to contain_exactly(underscore)
+      end
+
+      it "treats a backslash as a literal character" do
+        backslash = create(:project, name: 'Path\To Project')
+        create(:project, name: "PathTo Project")
+
+        expect(described_class.search('Path\To')).to contain_exactly(backslash)
+      end
+    end
+
+    context "with SQL injection attempts" do
+      it "does not widen the results" do
+        expect(described_class.search("' OR '1'='1")).to be_empty
+      end
+
+      it "does not execute injected statements" do
+        expect(described_class.search("'; DROP TABLE projects; --")).to be_empty
+        expect(described_class.count).to eq(2)
+      end
+    end
+  end
+
+  describe ".favorites" do
+    it "returns only favorite projects" do
+      favorite = create(:project, favorite: true)
+      create(:project, favorite: false)
+
+      expect(described_class.favorites).to contain_exactly(favorite)
+    end
+
+    it "returns nothing when there are no favorites" do
+      create(:project, favorite: false)
+
+      expect(described_class.favorites).to be_empty
+    end
+  end
+
+  describe ".sorted_by" do
+    let!(:alpha) do
+      create(:project, name: "Alpha Project", start_date: Date.new(2026, 2, 1), end_date: Date.new(2026, 12, 1))
+    end
+    let!(:bravo) do
+      create(:project, name: "Bravo Project", start_date: Date.new(2026, 3, 1), end_date: Date.new(2026, 4, 1))
+    end
+    let!(:charlie) do
+      create(:project, name: "Charlie Project", start_date: Date.new(2026, 1, 1), end_date: Date.new(2026, 8, 1))
+    end
+
+    it "sorts by name" do
+      expect(described_class.sorted_by("name")).to eq([ alpha, bravo, charlie ])
+    end
+
+    it "sorts by most recent start_date with recent" do
+      expect(described_class.sorted_by("recent")).to eq([ bravo, alpha, charlie ])
+    end
+
+    it "sorts by nearest end_date with deadline" do
+      expect(described_class.sorted_by("deadline")).to eq([ bravo, charlie, alpha ])
+    end
+
+    it "accepts the option as a symbol" do
+      expect(described_class.sorted_by(:recent)).to eq([ bravo, alpha, charlie ])
+    end
+
+    it "falls back to name when the option is nil" do
+      expect(described_class.sorted_by(nil)).to eq([ alpha, bravo, charlie ])
+    end
+
+    it "falls back to name for an unknown option" do
+      expect(described_class.sorted_by("name; DROP TABLE projects")).to eq([ alpha, bravo, charlie ])
+    end
+  end
+
+  describe "chaining scopes" do
+    it "combines search, favorites and sorted_by" do
+      older = create(:project, name: "Website Alpha", favorite: true, start_date: Date.new(2026, 1, 1))
+      newer = create(:project, name: "Website Bravo", favorite: true, start_date: Date.new(2026, 2, 1))
+      create(:project, name: "Website Charlie", favorite: false)
+      create(:project, name: "Mobile App", favorite: true)
+
+      expect(described_class.search("website").favorites.sorted_by("recent")).to eq([ newer, older ])
+    end
+
+    it "keeps the chain when the search term is too short" do
+      favorite = create(:project, favorite: true)
+      create(:project, favorite: false)
+
+      expect(described_class.favorites.search("ab")).to contain_exactly(favorite)
+    end
+  end
+
   describe "database constraints" do
     %i[name client start_date end_date favorite].each do |column|
       it "does not allow a null #{column}" do
