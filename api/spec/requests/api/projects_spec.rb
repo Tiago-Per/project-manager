@@ -98,6 +98,9 @@ RSpec.describe "Api::Projects", type: :request do
     end
 
     context "with the sort param" do
+      # Every project below has started and none has ended yet.
+      before { travel_to Time.zone.local(2026, 3, 15, 12) }
+
       before do
         create(:project, name: "Alpha Project", start_date: Date.new(2026, 2, 1), end_date: Date.new(2026, 12, 1))
         create(:project, name: "Bravo Project", start_date: Date.new(2026, 3, 1), end_date: Date.new(2026, 4, 1))
@@ -116,6 +119,30 @@ RSpec.describe "Api::Projects", type: :request do
         expect(names).to eq([ "Bravo Project", "Alpha Project", "Charlie Project" ])
       end
 
+      it "lists started projects before upcoming ones with sort=recent" do
+        travel_to Time.zone.local(2026, 11, 11, 12)
+        Project.delete_all
+        create(:project, name: "Starts Nov 19", start_date: Date.new(2026, 11, 19), end_date: Date.new(2026, 12, 31))
+        create(:project, name: "Started Nov 10", start_date: Date.new(2026, 11, 10), end_date: Date.new(2026, 12, 31))
+        create(:project, name: "Starts Nov 12", start_date: Date.new(2026, 11, 12), end_date: Date.new(2026, 12, 31))
+
+        get api_projects_path, params: { sort: "recent" }
+
+        expect(names).to eq([ "Started Nov 10", "Starts Nov 12", "Starts Nov 19" ])
+      end
+
+      it "lists open projects before finished ones with sort=deadline" do
+        travel_to Time.zone.local(2026, 11, 11, 12)
+        Project.delete_all
+        create(:project, name: "Ended Nov 10", start_date: Date.new(2026, 1, 1), end_date: Date.new(2026, 11, 10))
+        create(:project, name: "Ends Dec 20", start_date: Date.new(2026, 1, 1), end_date: Date.new(2026, 12, 20))
+        create(:project, name: "Ends Nov 18", start_date: Date.new(2026, 1, 1), end_date: Date.new(2026, 11, 18))
+
+        get api_projects_path, params: { sort: "deadline" }
+
+        expect(names).to eq([ "Ends Nov 18", "Ends Dec 20", "Ended Nov 10" ])
+      end
+
       it "sorts by end_date ascending with sort=deadline" do
         get api_projects_path, params: { sort: "deadline" }
 
@@ -130,6 +157,8 @@ RSpec.describe "Api::Projects", type: :request do
     end
 
     context "with tied sort values" do
+      before { travel_to Time.zone.local(2026, 3, 15, 12) }
+
       %w[name recent deadline].each do |sort|
         it "breaks ties by id with sort=#{sort}" do
           first = create(:project)
@@ -145,6 +174,7 @@ RSpec.describe "Api::Projects", type: :request do
     end
 
     it "combines the search, favorite and sort params" do
+      travel_to Time.zone.local(2026, 3, 15, 12)
       create(:project, name: "Website Alpha", favorite: true, start_date: Date.new(2026, 1, 1))
       create(:project, name: "Website Bravo", favorite: true, start_date: Date.new(2026, 2, 1))
       create(:project, name: "Website Charlie", favorite: false)

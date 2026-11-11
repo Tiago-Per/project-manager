@@ -33,7 +33,8 @@ module ProjectManagerApi
     # These settings can be overridden in specific environments using the files
     # in config/environments, which are processed later.
     #
-    # config.time_zone = "Central Time (US & Canada)"
+    # "Today" (Date.current) follows the users' time zone, used by the date sorts.
+    config.time_zone = "America/Sao_Paulo"
     # config.eager_load_paths << Rails.root.join("extras")
 
     # Only loads a smaller set of middleware suitable for API only apps.

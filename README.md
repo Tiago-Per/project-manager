@@ -68,7 +68,10 @@ Erros de validação retornam `422` com os erros por campo, e projeto inexistent
 ### API
 - **Controllers enxutos:** a lógica de consulta fica em scopes no model, a resposta é montada por um serializer em Ruby puro e os erros são tratados uma única vez no `ApplicationController`.
 - **Busca, filtro e ordenação na API.** A busca considera só o nome do projeto, conforme o design, ignora maiúsculas e minúsculas e só é aplicada a partir de 3 caracteres.
-- **Ordenações pelas datas do projeto:** "Iniciados mais recentes" ordena pela data de início, da mais recente para a mais antiga, e "Prazo mais próximo" pela data final, da mais próxima para a mais distante. Todas usam o `id` como desempate, para a ordem não mudar entre requisições.
+- **Ordenações pelas datas, comparando com o dia de hoje:**
+  - "Iniciados mais recentes" mostra primeiro os projetos que já começaram, do início mais recente para o mais antigo, e depois os que ainda vão começar, do mais próximo para o mais distante.
+  - "Prazo mais próximo" mostra primeiro os projetos ainda no prazo, da data final mais próxima para a mais distante, e depois os já finalizados, do mais recente para o mais antigo. Assim, um prazo vencido não aparece como "o mais próximo".
+  - O "hoje" segue o fuso `America/Sao_Paulo`, e todas as ordenações usam o `id` como desempate, para a ordem não mudar entre requisições.
 - **Consultas seguras:** o termo de busca passa por `sanitize_sql_like`, e a ordenação aceita só uma lista fechada de opções, nunca o valor recebido diretamente no `order`. Um valor desconhecido volta para a ordem alfabética.
 - **N+1 evitado** na listagem com `with_attached_cover`, e índices nas colunas usadas para ordenar.
 - **Favoritar como recurso** (`POST` e `DELETE /api/projects/:id/favorite`), em vez de uma ação que inverte o valor. As operações ficam idempotentes: repetir a mesma requisição, por um clique duplo ou um retry, não muda o resultado. O campo `favorite` não é aceito no create nem no update.

@@ -247,6 +247,9 @@ RSpec.describe Project, type: :model do
   end
 
   describe ".sorted_by" do
+    # Every project below has started and none has ended yet.
+    before { travel_to Time.zone.local(2026, 3, 15, 12) }
+
     let!(:alpha) do
       create(:project, name: "Alpha Project", start_date: Date.new(2026, 2, 1), end_date: Date.new(2026, 12, 1))
     end
@@ -280,10 +283,65 @@ RSpec.describe Project, type: :model do
     it "falls back to name for an unknown option" do
       expect(described_class.sorted_by("name; DROP TABLE projects")).to eq([ alpha, bravo, charlie ])
     end
+
+    context "with recent and projects starting after today" do
+      before { travel_to Time.zone.local(2026, 11, 11, 12) }
+
+      it "lists started projects first, then upcoming ones by nearest start" do
+        Project.delete_all
+        started = create(:project, start_date: Date.new(2026, 11, 10), end_date: Date.new(2026, 12, 31))
+        next_week = create(:project, start_date: Date.new(2026, 11, 19), end_date: Date.new(2026, 12, 31))
+        tomorrow = create(:project, start_date: Date.new(2026, 11, 12), end_date: Date.new(2026, 12, 31))
+        older = create(:project, start_date: Date.new(2026, 10, 1), end_date: Date.new(2026, 12, 31))
+
+        expect(described_class.sorted_by("recent")).to eq([ started, older, tomorrow, next_week ])
+      end
+
+      it "counts a project starting today as started" do
+        Project.delete_all
+        tomorrow = create(:project, start_date: Date.new(2026, 11, 12), end_date: Date.new(2026, 12, 31))
+        today = create(:project, start_date: Date.new(2026, 11, 11), end_date: Date.new(2026, 12, 31))
+
+        expect(described_class.sorted_by("recent")).to eq([ today, tomorrow ])
+      end
+    end
+
+    context "with deadline and projects already finished" do
+      before { travel_to Time.zone.local(2026, 11, 11, 12) }
+
+      it "lists open projects by nearest end, then finished ones by latest end" do
+        Project.delete_all
+        long_ago = create(:project, start_date: Date.new(2026, 1, 1), end_date: Date.new(2026, 3, 1))
+        next_month = create(:project, start_date: Date.new(2026, 1, 1), end_date: Date.new(2026, 12, 20))
+        yesterday = create(:project, start_date: Date.new(2026, 1, 1), end_date: Date.new(2026, 11, 10))
+        next_week = create(:project, start_date: Date.new(2026, 1, 1), end_date: Date.new(2026, 11, 18))
+
+        expect(described_class.sorted_by("deadline")).to eq([ next_week, next_month, yesterday, long_ago ])
+      end
+
+      it "counts a project ending today as open" do
+        Project.delete_all
+        yesterday = create(:project, start_date: Date.new(2026, 1, 1), end_date: Date.new(2026, 11, 10))
+        today = create(:project, start_date: Date.new(2026, 1, 1), end_date: Date.new(2026, 11, 11))
+
+        expect(described_class.sorted_by("deadline")).to eq([ today, yesterday ])
+      end
+    end
+
+    it "uses the Sao Paulo date, not UTC" do
+      # 22:00 on Nov 11 in Sao Paulo is already Nov 12 in UTC.
+      travel_to Time.zone.local(2026, 11, 11, 22)
+      Project.delete_all
+      tomorrow = create(:project, start_date: Date.new(2026, 11, 12), end_date: Date.new(2026, 12, 31))
+      started = create(:project, start_date: Date.new(2026, 11, 1), end_date: Date.new(2026, 12, 31))
+
+      expect(described_class.sorted_by("recent")).to eq([ started, tomorrow ])
+    end
   end
 
   describe "chaining scopes" do
     it "combines search, favorites and sorted_by" do
+      travel_to Time.zone.local(2026, 3, 15, 12)
       older = create(:project, name: "Website Alpha", favorite: true, start_date: Date.new(2026, 1, 1))
       newer = create(:project, name: "Website Bravo", favorite: true, start_date: Date.new(2026, 2, 1))
       create(:project, name: "Website Charlie", favorite: false)

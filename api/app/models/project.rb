@@ -1,11 +1,6 @@
 class Project < ApplicationRecord
   COVER_CONTENT_TYPES = %w[image/jpeg image/png].freeze
   SEARCH_MIN_LENGTH = 3
-  SORT_ORDERS = {
-    "name" => { name: :asc, id: :asc },
-    "recent" => { start_date: :desc, id: :asc },
-    "deadline" => { end_date: :asc, id: :asc }
-  }.freeze
 
   has_one_attached :cover
 
@@ -13,7 +8,39 @@ class Project < ApplicationRecord
   before_validation :remove_cover_attachment, if: :remove_cover
 
   scope :favorites, -> { where(favorite: true) }
-  scope :sorted_by, ->(option) { order(SORT_ORDERS.fetch(option.to_s, SORT_ORDERS["name"])) }
+
+  scope :sorted_by, ->(option) {
+    case option.to_s
+    when "recent" then recently_started
+    when "deadline" then nearest_deadline
+    else order(name: :asc, id: :asc)
+    end
+  }
+
+  scope :recently_started, -> {
+    start_date = arel_table[:start_date]
+    started = start_date.lteq(Date.current)
+
+    order(
+      Arel::Nodes::Case.new.when(started).then(0).else(1).asc,
+      Arel::Nodes::Case.new.when(started).then(start_date).desc,
+      start_date.asc,
+      arel_table[:id].asc
+    )
+  }
+
+  scope :nearest_deadline, -> {
+    end_date = arel_table[:end_date]
+    open = end_date.gteq(Date.current)
+
+    order(
+      Arel::Nodes::Case.new.when(open).then(0).else(1).asc,
+      Arel::Nodes::Case.new.when(open).then(end_date).asc,
+      end_date.desc,
+      arel_table[:id].asc
+    )
+  }
+  
   scope :search, ->(term) {
     term = term.to_s.strip
     where("projects.name ILIKE ?", "%#{sanitize_sql_like(term)}%") if term.length >= SEARCH_MIN_LENGTH
