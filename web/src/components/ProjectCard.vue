@@ -1,26 +1,41 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
+
 import calendarCheckIcon from '@/assets/icons/calendar-check.svg'
 import calendarDayIcon from '@/assets/icons/calendar-day.svg'
-import menuIcon from '@/assets/icons/menu.svg'
 import starFilledIcon from '@/assets/icons/star-filled.svg'
 import starOutlineIcon from '@/assets/icons/star-outline.svg'
 import coverPlaceholder from '@/assets/images/cover-placeholder.png'
+import CardMenu from '@/components/CardMenu.vue'
 import type { Project } from '@/types/project'
 import { formatDate } from '@/utils/date'
 
-defineProps<{ project: Project }>()
+const { project } = defineProps<{ project: Project }>()
 
-defineEmits<{ 'toggle-favorite': [project: Project] }>()
+const menuOpen = defineModel<boolean>('menuOpen', { default: false })
+
+defineEmits<{
+  'toggle-favorite': [project: Project]
+  remove: [project: Project]
+}>()
+
+// Falls back to the placeholder when the cover URL fails to load.
+const coverFailed = ref(false)
+watch(
+  () => project.cover_url,
+  () => (coverFailed.value = false),
+)
 </script>
 
 <template>
-  <article class="rounded-card flex flex-col overflow-hidden">
+  <article class="flex flex-col">
     <div class="relative aspect-3/2">
       <img
-        :src="project.cover_url ?? coverPlaceholder"
+        :src="(!coverFailed && project.cover_url) || coverPlaceholder"
         alt=""
-        class="size-full object-cover"
+        class="rounded-t-card size-full object-cover"
         data-test="cover"
+        @error="coverFailed = true"
       />
 
       <div class="absolute right-4 bottom-2 flex items-center gap-2">
@@ -33,13 +48,12 @@ defineEmits<{ 'toggle-favorite': [project: Project] }>()
         >
           <img :src="project.favorite ? starFilledIcon : starOutlineIcon" alt="" />
         </button>
-        <button
-          type="button"
-          :aria-label="`Mais ações para ${project.name}`"
-          class="flex size-10 items-center justify-center rounded-full"
-        >
-          <img :src="menuIcon" alt="" width="40" height="40" />
-        </button>
+        <CardMenu
+          v-model:open="menuOpen"
+          :label="`Mais ações para ${project.name}`"
+          :edit-to="{ name: 'project-edit', params: { id: project.id } }"
+          @remove="$emit('remove', project)"
+        />
       </div>
     </div>
 

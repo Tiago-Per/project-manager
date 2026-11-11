@@ -12,7 +12,7 @@ const sort = defineModel<ProjectSort>('sort', { required: true })
 
 <template>
   <div class="flex flex-wrap items-center justify-between gap-4">
-    <h1 class="text-heading text-title">
+    <h1 tabindex="-1" class="text-heading text-title outline-none">
       Projetos <span class="text-count text-primary font-normal">({{ total }})</span>
     </h1>
 

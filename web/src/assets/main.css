@@ -15,8 +15,11 @@
   --color-muted: #717171;
   --color-border: #dcdcdc;
   --color-divider: #ececec;
+  --color-separator: #8c8b93; /* modal divider */
+  --color-backdrop: rgb(24 24 24 / 0.9);
   --color-toggle: #53525d;
   --color-favorite: #ffb23d;
+  --color-danger: #c62828; /* error messages (not in the design) */
 
   /* Font sizes (with line height and weight where the design fixes them) */
   --text-display: 2rem; /* 32px, Figma variable large-xxx */
@@ -25,6 +28,9 @@
   --text-heading--font-weight: 600;
   --text-card-title: 1.25rem; /* 20px, project name */
   --text-card-title--font-weight: 700;
+  --text-modal-title: 1.375rem; /* 22px */
+  --text-modal-title--line-height: 2rem;
+  --text-modal-title--font-weight: 600;
   --text-button-lg: 1.25rem; /* 20px, large button */
   --text-button-lg--line-height: 1.375rem;
   --text-brand: 1.125rem; /* 18px, logo text */

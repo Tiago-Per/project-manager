@@ -64,6 +64,61 @@ describe('ProjectListView', () => {
     expect(wrapper.text()).toContain('Nenhum projeto favorito')
   })
 
+  it('removes a project after confirming in the modal', async () => {
+    const other = { ...project, id: 2, name: 'App mobile' }
+    vi.mocked(api.listProjects).mockResolvedValue({
+      projects: [project, other],
+      meta: { total: 2 },
+    })
+    vi.mocked(api.deleteProject).mockResolvedValue()
+
+    const wrapper = await mountView()
+    await wrapper.get('[aria-label="Mais ações para Site institucional"]').trigger('click')
+    await flushPromises()
+    await wrapper.findAll('[role="menuitem"]')[1]?.trigger('click')
+    await flushPromises()
+
+    const dialog = document.body.querySelector('[role="dialog"]')
+    expect(dialog?.textContent).toContain('Site institucional')
+
+    Array.from(dialog!.querySelectorAll('button'))
+      .find((b) => b.textContent?.trim() === 'Confirmar')!
+      .click()
+    await flushPromises()
+
+    expect(api.deleteProject).toHaveBeenCalledWith(1)
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull()
+    expect(wrapper.findAll('article')).toHaveLength(1)
+    expect(wrapper.get('h1').text()).toBe('Projetos (1)')
+
+    wrapper.unmount()
+  })
+
+  it('keeps the modal open with an error when removal fails', async () => {
+    vi.mocked(api.listProjects).mockResolvedValue({ projects: [project], meta: { total: 1 } })
+    vi.mocked(api.deleteProject).mockRejectedValue(new Error('network'))
+
+    const wrapper = await mountView()
+    await wrapper.get('[aria-label="Mais ações para Site institucional"]').trigger('click')
+    await flushPromises()
+    await wrapper.findAll('[role="menuitem"]')[1]?.trigger('click')
+    await flushPromises()
+
+    const confirm = Array.from(document.body.querySelectorAll('[role="dialog"] button')).find(
+      (b) => b.textContent?.trim() === 'Confirmar',
+    ) as HTMLButtonElement
+    confirm.click()
+    await flushPromises()
+
+    expect(document.body.querySelector('[role="alert"]')?.textContent).toContain(
+      'Não foi possível remover o projeto',
+    )
+    expect(confirm.disabled).toBe(false)
+    expect(wrapper.findAll('article')).toHaveLength(1)
+
+    wrapper.unmount()
+  })
+
   it('favorites a project through the store', async () => {
     vi.mocked(api.listProjects).mockResolvedValue({ projects: [project], meta: { total: 1 } })
     vi.mocked(api.favoriteProject).mockResolvedValue({ ...project, favorite: true })

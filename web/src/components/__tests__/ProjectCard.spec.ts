@@ -42,6 +42,14 @@ describe('ProjectCard', () => {
     expect(wrapper.get('[data-test="cover"]').attributes('src')).toContain('cover-placeholder')
   })
 
+  it('falls back to the placeholder when the cover fails to load', async () => {
+    const wrapper = mountCard({ cover_url: 'http://localhost:3000/broken.png' })
+
+    await wrapper.get('[data-test="cover"]').trigger('error')
+
+    expect(wrapper.get('[data-test="cover"]').attributes('src')).toContain('cover-placeholder')
+  })
+
   it('labels the star button by favorite state', () => {
     const notFavorite = mountCard().get('[aria-pressed]')
     expect(notFavorite.attributes('aria-label')).toBe('Favoritar Site institucional')
