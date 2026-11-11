@@ -135,6 +135,31 @@ RSpec.describe Project, type: :model do
     end
   end
 
+  describe "#remove_cover" do
+    let(:project) { create(:project, cover: file_fixture("cover.png").open) }
+
+    it "defaults to false" do
+      expect(described_class.new.remove_cover).to be(false)
+    end
+
+    it "casts form values to a boolean" do
+      expect(described_class.new(remove_cover: "1").remove_cover).to be(true)
+      expect(described_class.new(remove_cover: "false").remove_cover).to be(false)
+    end
+
+    it "detaches the cover on save when true" do
+      project.update!(remove_cover: true)
+
+      expect(project.reload.cover).not_to be_attached
+    end
+
+    it "keeps the cover when the record is invalid" do
+      expect(project.update(name: "Single", remove_cover: true)).to be(false)
+
+      expect(project.reload.cover).to be_attached
+    end
+  end
+
   describe ".search" do
     let!(:website) { create(:project, name: "Website Redesign") }
     let!(:mobile) { create(:project, name: "Mobile App") }

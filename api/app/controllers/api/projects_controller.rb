@@ -49,7 +49,7 @@ module Api
     end
 
     def project_params
-      params.expect(project: %i[name client start_date end_date cover])
+      params.expect(project: %i[name client start_date end_date cover remove_cover])
     end
 
     def render_invalid_cover

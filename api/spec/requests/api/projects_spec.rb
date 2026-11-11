@@ -333,6 +333,75 @@ RSpec.describe "Api::Projects", type: :request do
       expect(project.reload.cover).to be_attached
     end
 
+    context "with the remove_cover param" do
+      before { project.update!(cover: png) }
+
+      it "removes and purges the cover when remove_cover is true" do
+        expect { patch api_project_path(project), params: { project: { remove_cover: "true" } } }
+          .to change(ActiveStorage::Attachment, :count).by(-1)
+          .and have_enqueued_job(ActiveStorage::PurgeJob)
+
+        expect(response).to have_http_status(:ok)
+        expect(json["cover_url"]).to be_nil
+        expect(project.reload.cover).not_to be_attached
+      end
+
+      it "accepts a JSON boolean" do
+        patch api_project_path(project), params: { project: { remove_cover: true } }, as: :json
+
+        expect(response).to have_http_status(:ok)
+        expect(project.reload.cover).not_to be_attached
+      end
+
+      it "removes the cover while updating other attributes" do
+        patch api_project_path(project), params: { project: { client: "Globex", remove_cover: "true" } }
+
+        expect(response).to have_http_status(:ok)
+        expect(json["client"]).to eq("Globex")
+        expect(project.reload.cover).not_to be_attached
+      end
+
+      it "keeps the cover when the param is absent" do
+        expect { patch api_project_path(project), params: { project: { client: "Globex" } } }
+          .not_to have_enqueued_job(ActiveStorage::PurgeJob)
+
+        expect(response).to have_http_status(:ok)
+        expect(json["cover_url"]).to be_present
+        expect(project.reload.cover).to be_attached
+      end
+
+      it "keeps the cover when remove_cover is false" do
+        patch api_project_path(project), params: { project: { client: "Globex", remove_cover: "false" } }
+
+        expect(response).to have_http_status(:ok)
+        expect(project.reload.cover).to be_attached
+      end
+
+      it "keeps the cover when the update is invalid" do
+        expect { patch api_project_path(project), params: { project: { name: "Single", remove_cover: "true" } } }
+          .not_to have_enqueued_job(ActiveStorage::PurgeJob)
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(project.reload.cover).to be_attached
+      end
+
+      it "removes the cover even when a new one is uploaded in the same request" do
+        patch api_project_path(project), params: { project: { cover: jpg, remove_cover: "true" } }
+
+        expect(response).to have_http_status(:ok)
+        expect(project.reload.cover).not_to be_attached
+      end
+
+      it "succeeds when the project has no cover" do
+        project.cover.purge
+
+        patch api_project_path(project), params: { project: { remove_cover: "true" } }
+
+        expect(response).to have_http_status(:ok)
+        expect(json["cover_url"]).to be_nil
+      end
+    end
+
     it "returns 422 with the validation errors on invalid data" do
       patch api_project_path(project), params: { project: { name: "Single" } }
 

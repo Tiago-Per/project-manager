@@ -9,6 +9,9 @@ class Project < ApplicationRecord
 
   has_one_attached :cover
 
+  attribute :remove_cover, :boolean, default: false
+  before_validation :remove_cover_attachment, if: :remove_cover
+
   scope :favorites, -> { where(favorite: true) }
   scope :sorted_by, ->(option) { order(SORT_ORDERS.fetch(option.to_s, SORT_ORDERS["name"])) }
   scope :search, ->(term) {
@@ -25,6 +28,12 @@ class Project < ApplicationRecord
   validate :cover_must_be_jpg_or_png
 
   private
+
+  # Assigning nil only schedules the removal: Active Storage detaches the cover when the
+  # record is saved and purges the file after commit, so a failed update keeps it.
+  def remove_cover_attachment
+    self.cover = nil
+  end
 
   def cover_must_be_jpg_or_png
     return unless cover.attached?
