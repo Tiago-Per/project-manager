@@ -1,9 +1,46 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
-  --font-sans: "Encode Sans", sans-serif;
-  --color-header: #1f1b33;
+  /* Font family */
+  --font-sans: 'Encode Sans Semi Expanded', ui-sans-serif, system-ui, sans-serif;
+  --font-brand: 'Encode Sans Expanded', ui-sans-serif, system-ui, sans-serif;
+
+  /* Colors */
   --color-primary: #695ccd;
-  --color-title: #1c1380;
-  /* ...the other design tokens */
+  --color-header: #1c1930;
+  --color-title: #1f1283;
+  --color-page: #f4f2ff;
+  --color-surface: #ffffff;
+  --color-text: #1e1e1e;
+  --color-muted: #717171;
+  --color-border: #dcdcdc;
+  --color-toggle: #53525d;
+
+  /* Font sizes (with line height and weight where the design fixes them) */
+  --text-display: 2rem; /* 32px, Figma variable large-xxx */
+  --text-display--font-weight: 700;
+  --text-heading: 1.5rem; /* 24px, page title */
+  --text-heading--font-weight: 600;
+  --text-card-title: 1.25rem; /* 20px, project name */
+  --text-card-title--font-weight: 700;
+  --text-brand: 1.125rem; /* 18px, logo text */
+  --text-count: 1.0625rem; /* 17px, project counter */
+  --text-body: 1rem; /* 16px, body, fields and buttons */
+  --text-body--line-height: 1.5rem;
+
+  /* Spacing: the design sits on a 4px/8px grid, Tailwind's default base step */
+  --spacing: 0.25rem;
+
+  /* Border radius */
+  --radius-medium: 0.5rem; /* 8px, Figma variable border/radius/medium: fields, sort select */
+  --radius-card: 1rem; /* 16px, project card */
+
+  /* Shadows */
+  --shadow-header: 0 4px 2px rgb(0 0 0 / 0.25);
+}
+
+@layer base {
+  body {
+    @apply bg-page text-body text-text font-sans antialiased;
+  }
 }
