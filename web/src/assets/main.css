@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Encode Sans", sans-serif;
+  --color-header: #1f1b33;
+  --color-primary: #695ccd;
+  --color-title: #1c1380;
+  /* ...the other design tokens */
+}
