@@ -15,6 +15,7 @@
   --color-muted: #717171;
   --color-border: #dcdcdc;
   --color-toggle: #53525d;
+  --color-favorite: #ffb23d;
 
   /* Font sizes (with line height and weight where the design fixes them) */
   --text-display: 2rem; /* 32px, Figma variable large-xxx */
