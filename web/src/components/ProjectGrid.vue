@@ -4,7 +4,11 @@ import { ref } from 'vue'
 import ProjectCard from '@/components/ProjectCard.vue'
 import type { Project } from '@/types/project'
 
-defineProps<{ projects: Project[] }>()
+defineProps<{
+  projects: Project[]
+  /** Search term to highlight in the project names. */
+  highlight?: string
+}>()
 
 defineEmits<{
   'toggle-favorite': [project: Project]
@@ -25,6 +29,7 @@ function setMenuOpen(id: number, open: boolean) {
     <li v-for="project in projects" :key="project.id">
       <ProjectCard
         :project="project"
+        :highlight="highlight"
         :menu-open="openMenuId === project.id"
         @update:menu-open="setMenuOpen(project.id, $event)"
         @toggle-favorite="$emit('toggle-favorite', $event)"

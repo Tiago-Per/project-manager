@@ -12,6 +12,14 @@ export const useProjectsStore = defineStore('projects', () => {
   const error = ref<unknown>(null)
   const filters = ref<ProjectFilters>({ search: '', favorite: false, sort: 'name' })
 
+  // Search results live apart from the list so its filters stay untouched.
+  const searchResults = ref<Project[]>([])
+  /** Term that produced `searchResults`. */
+  const searchTerm = ref<string | null>(null)
+  const searchLoading = ref(false)
+  const searchError = ref<unknown>(null)
+  let lastSearch = 0
+
   async function fetchProjects() {
     loading.value = true
     error.value = null
@@ -34,9 +42,30 @@ export const useProjectsStore = defineStore('projects', () => {
     return fetchProjects()
   }
 
+  async function searchProjects(term: string) {
+    const request = ++lastSearch
+    searchLoading.value = true
+    searchError.value = null
+
+    try {
+      const response = await api.listProjects({ search: term, sort: 'name' })
+      // A newer search started meanwhile: its response wins.
+      if (request === lastSearch) {
+        searchResults.value = response.projects
+        searchTerm.value = term
+      }
+    } catch (e) {
+      if (request === lastSearch) searchError.value = e
+    } finally {
+      if (request === lastSearch) searchLoading.value = false
+    }
+  }
+
   function replace(project: Project) {
-    const index = projects.value.findIndex(({ id }) => id === project.id)
-    if (index !== -1) projects.value[index] = project
+    for (const list of [projects.value, searchResults.value]) {
+      const index = list.findIndex(({ id }) => id === project.id)
+      if (index !== -1) list[index] = project
+    }
   }
 
   function fetchProject(id: number) {
@@ -58,6 +87,7 @@ export const useProjectsStore = defineStore('projects', () => {
   async function deleteProject(id: number) {
     await api.deleteProject(id)
     projects.value = projects.value.filter((project) => project.id !== id)
+    searchResults.value = searchResults.value.filter((project) => project.id !== id)
     total.value = Math.max(total.value - 1, 0)
   }
 
@@ -66,10 +96,9 @@ export const useProjectsStore = defineStore('projects', () => {
       ? await api.unfavoriteProject(project.id)
       : await api.favoriteProject(project.id)
 
+    replace(updated)
     if (filters.value.favorite && !updated.favorite) {
       projects.value = projects.value.filter(({ id }) => id !== updated.id)
-    } else {
-      replace(updated)
     }
 
     return updated
@@ -82,7 +111,12 @@ export const useProjectsStore = defineStore('projects', () => {
     loaded,
     error,
     filters,
+    searchResults,
+    searchTerm,
+    searchLoading,
+    searchError,
     fetchProjects,
+    searchProjects,
     setFilters,
     fetchProject,
     createProject,

@@ -7,10 +7,15 @@ import starFilledIcon from '@/assets/icons/star-filled.svg'
 import starOutlineIcon from '@/assets/icons/star-outline.svg'
 import coverPlaceholder from '@/assets/images/cover-placeholder.png'
 import CardMenu from '@/components/CardMenu.vue'
+import HighlightedText from '@/components/HighlightedText.vue'
 import type { Project } from '@/types/project'
 import { formatDate } from '@/utils/date'
 
-const { project } = defineProps<{ project: Project }>()
+const { project, highlight = '' } = defineProps<{
+  project: Project
+  /** Search term to highlight in the project name. */
+  highlight?: string
+}>()
 
 const menuOpen = defineModel<boolean>('menuOpen', { default: false })
 
@@ -58,7 +63,9 @@ watch(
     </div>
 
     <div class="border-border rounded-b-card flex flex-1 flex-col border border-t-0 bg-white p-6">
-      <h2 class="text-card-title text-title truncate">{{ project.name }}</h2>
+      <h2 class="text-card-title text-title truncate">
+        <HighlightedText :text="project.name" :query="highlight" />
+      </h2>
       <p class="text-muted mt-2 truncate">
         <span class="font-bold">Cliente:</span> {{ project.client }}
       </p>

@@ -3,11 +3,11 @@ import { computed, nextTick, onMounted, ref, useTemplateRef } from 'vue'
 import { storeToRefs } from 'pinia'
 
 import AppButton from '@/components/AppButton.vue'
-import ConfirmModal from '@/components/ConfirmModal.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import NewProjectButton from '@/components/NewProjectButton.vue'
 import ProjectGrid from '@/components/ProjectGrid.vue'
 import ProjectsToolbar from '@/components/ProjectsToolbar.vue'
+import RemoveProjectModal from '@/components/RemoveProjectModal.vue'
 import { useProjectsStore } from '@/stores/projects'
 import type { Project, ProjectSort } from '@/types/project'
 
@@ -35,35 +35,12 @@ async function toggleFavorite(project: Project) {
 }
 
 const projectToRemove = ref<Project | null>(null)
-const removing = ref(false)
-const removeError = ref<string | null>(null)
 
-function askRemove(project: Project) {
-  removeError.value = null
-  projectToRemove.value = project
-}
-
-function cancelRemove() {
+async function onRemoved() {
   projectToRemove.value = null
-}
-
-async function confirmRemove() {
-  if (!projectToRemove.value) return
-
-  removing.value = true
-  removeError.value = null
-
-  try {
-    await store.deleteProject(projectToRemove.value.id)
-    projectToRemove.value = null
-    // The card and its "..." button are gone, so move focus to the page heading.
-    await nextTick()
-    main.value?.querySelector<HTMLElement>('h1, h2')?.focus()
-  } catch {
-    removeError.value = 'Não foi possível remover o projeto. Tente novamente.'
-  } finally {
-    removing.value = false
-  }
+  // The card and its "..." button are gone, so move focus to the page heading.
+  await nextTick()
+  main.value?.querySelector<HTMLElement>('h1, h2')?.focus()
 }
 
 onMounted(() => store.fetchProjects())
@@ -95,7 +72,7 @@ onMounted(() => store.fetchProjects())
           v-if="projects.length"
           :projects="projects"
           @toggle-favorite="toggleFavorite"
-          @remove="askRemove"
+          @remove="projectToRemove = $event"
         />
         <EmptyState
           v-else-if="filters.favorite"
@@ -105,18 +82,10 @@ onMounted(() => store.fetchProjects())
       </template>
     </template>
 
-    <ConfirmModal
-      :open="projectToRemove !== null"
-      title="Remover projeto"
-      :loading="removing"
-      :error="removeError"
-      @confirm="confirmRemove"
-      @cancel="cancelRemove"
-    >
-      <p class="text-muted leading-5.5">Essa ação removerá definitivamente o projeto:</p>
-      <p class="text-heading text-header mt-3 font-medium break-words">
-        {{ projectToRemove?.name }}
-      </p>
-    </ConfirmModal>
+    <RemoveProjectModal
+      :project="projectToRemove"
+      @cancel="projectToRemove = null"
+      @removed="onRemoved"
+    />
   </main>
 </template>

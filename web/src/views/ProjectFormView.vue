@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
-import arrowLeftIcon from '@/assets/icons/arrow-left.svg'
+import BackLink from '@/components/BackLink.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ProjectForm from '@/components/ProjectForm.vue'
 import { ApiError } from '@/api/projects'
@@ -68,13 +68,7 @@ async function save(input: ProjectInput) {
 
 <template>
   <main class="flex flex-1 flex-col px-4 py-8 sm:px-10 sm:py-15">
-    <RouterLink
-      :to="{ name: 'projects' }"
-      class="text-primary flex w-fit items-center gap-2 hover:underline"
-    >
-      <img :src="arrowLeftIcon" alt="" width="16" height="16" />
-      Voltar
-    </RouterLink>
+    <BackLink />
     <h1 class="text-heading text-title mt-3">{{ title }}</h1>
 
     <EmptyState
