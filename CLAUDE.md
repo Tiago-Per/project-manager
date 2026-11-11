@@ -32,8 +32,10 @@ README.md            # documentation and technical decisions
 - Components with `<script setup lang="ts">` and the Composition API.
 - State management with Pinia (setup stores).
 - HTTP calls in `src/api/`, types in `src/types/`.
-- Custom CSS with custom properties, flexbox and grid.
 - API URL via `VITE_API_URL`.
+- Styling with Tailwind CSS v4. Design tokens defined in `@theme` in the main CSS file (no `tailwind.config.js`).
+- Use theme tokens in classes (e.g., `bg-primary`), not arbitrary values like `bg-[#695ccd]`.
+- Keep templates readable: extract repeated UI into components instead of long repeated class lists. Use `@apply` sparingly.
 
 ## Testing
 
@@ -49,9 +51,20 @@ README.md            # documentation and technical decisions
 - Test behavior visible to the user (what is rendered, emitted events), not implementation details.
 - Mock API calls.
 
+## Design principles
+
+### API
+- Prefer RESTful resources over custom actions (e.g., model "favorite" as a nested resource with POST/DELETE instead of a custom toggle action).
+- Write operations must be idempotent whenever possible: repeating the same request must not change the result.
+- Keep controllers thin: query logic in model scopes, response shaping in serializers.
+- Shared behavior (error handling, serialization helpers) lives in `ApplicationController`, not duplicated across controllers.
+- Never skip validations (`update_attribute`, `update_column`, `save(validate: false)`) in application code.
+- Use what Rails already provides (type casting, validations, `params.expect`) instead of hand-written parsing.
+
 ### General
+- Prefer the simplest solution that a senior Rails developer would consider idiomatic.
+- If a requirement leads to an awkward design, point it out and suggest a better alternative before implementing.
 - Every new feature comes with tests.
-- Run the tests after each change.
 
 ## Commands
 
