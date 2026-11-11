@@ -77,17 +77,19 @@ describe('projects store', () => {
     expect(store.projects[0]?.favorite).toBe(true)
   })
 
-  it('removes an unfavorited project when filtering by favorites', async () => {
+  it('removes an unfavorited project and decrements the total when filtering by favorites', async () => {
     const favorite = { ...project, favorite: true }
     vi.mocked(api.unfavoriteProject).mockResolvedValue(project)
     const store = useProjectsStore()
     store.filters.favorite = true
     store.projects = [favorite]
+    store.total = 1
 
     await store.toggleFavorite(favorite)
 
     expect(api.unfavoriteProject).toHaveBeenCalledWith(1)
     expect(store.projects).toEqual([])
+    expect(store.total).toBe(0)
   })
 
   it('removes a deleted project and decrements the total', async () => {

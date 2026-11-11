@@ -50,10 +50,43 @@ describe('ProjectListView', () => {
     expect(wrapper.text()).toContain('Novo projeto')
   })
 
+  it('shows the total of the favorites when filtering by them', async () => {
+    const favorite = { ...project, id: 2, name: 'App mobile', favorite: true }
+    vi.mocked(api.listProjects)
+      .mockResolvedValueOnce({ projects: [project, favorite], meta: { total: 2 } })
+      .mockResolvedValueOnce({ projects: [favorite], meta: { total: 1 } })
+
+    const wrapper = await mountView()
+    expect(wrapper.get('h1').text()).toBe('Projetos (2)')
+
+    await wrapper.get('[role="switch"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('h1').text()).toBe('Projetos (1)')
+    expect(wrapper.findAll('article')).toHaveLength(1)
+  })
+
+  it('updates the total when a project is unfavorited while filtering by favorites', async () => {
+    const favorite = { ...project, favorite: true }
+    vi.mocked(api.listProjects)
+      .mockResolvedValueOnce({ projects: [favorite], meta: { total: 1 } })
+      .mockResolvedValueOnce({ projects: [favorite], meta: { total: 1 } })
+    vi.mocked(api.unfavoriteProject).mockResolvedValue(project)
+
+    const wrapper = await mountView()
+    await wrapper.get('[role="switch"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[aria-label="Desfavoritar Site institucional"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('h1').text()).toBe('Projetos (0)')
+    expect(wrapper.text()).toContain('Nenhum projeto favorito')
+  })
+
   it('shows a message when the favorites filter returns nothing', async () => {
     vi.mocked(api.listProjects)
       .mockResolvedValueOnce({ projects: [project], meta: { total: 1 } })
-      .mockResolvedValueOnce({ projects: [], meta: { total: 1 } })
+      .mockResolvedValueOnce({ projects: [], meta: { total: 0 } })
 
     const wrapper = await mountView()
     await wrapper.get('[role="switch"]').trigger('click')

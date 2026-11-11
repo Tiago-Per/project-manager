@@ -58,7 +58,7 @@ onMounted(() => store.fetchProjects())
 
     <template v-else-if="loaded">
       <EmptyState
-        v-if="total === 0"
+        v-if="total === 0 && !filters.favorite"
         title="Nenhum projeto"
         description="Clique no botão abaixo para criar o primeiro e gerenciá-lo."
       >

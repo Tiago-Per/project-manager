@@ -70,10 +70,10 @@ RSpec.describe "Api::Projects", type: :request do
         expect(names).to eq([ "Mobile App", "Website Redesign" ])
       end
 
-      it "keeps meta.total as the total number of projects" do
+      it "counts only the matching projects in meta.total" do
         get api_projects_path, params: { search: "WEBSITE" }
 
-        expect(json["meta"]).to eq("total" => 2)
+        expect(json["meta"]).to eq("total" => 1)
       end
     end
 
@@ -87,7 +87,7 @@ RSpec.describe "Api::Projects", type: :request do
         get api_projects_path, params: { favorite: "true" }
 
         expect(names).to eq([ "Favorite Project" ])
-        expect(json["meta"]).to eq("total" => 2)
+        expect(json["meta"]).to eq("total" => 1)
       end
 
       it "does not filter when favorite is any other value" do
@@ -153,7 +153,7 @@ RSpec.describe "Api::Projects", type: :request do
       get api_projects_path, params: { search: "website", favorite: "true", sort: "recent" }
 
       expect(names).to eq([ "Website Bravo", "Website Alpha" ])
-      expect(json["meta"]).to eq("total" => 4)
+      expect(json["meta"]).to eq("total" => 2)
     end
   end
 

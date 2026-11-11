@@ -7,10 +7,11 @@ module Api
     def index
       projects = Project.with_attached_cover.search(params[:search]).sorted_by(params[:sort])
       projects = projects.favorites if params[:favorite] == "true"
+      projects = projects.to_a
 
       render json: {
         projects: projects.map { |project| serialize(project) },
-        meta: { total: Project.count }
+        meta: { total: projects.size }
       }
     end
 

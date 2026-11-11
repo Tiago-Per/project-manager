@@ -99,6 +99,7 @@ export const useProjectsStore = defineStore('projects', () => {
     replace(updated)
     if (filters.value.favorite && !updated.favorite) {
       projects.value = projects.value.filter(({ id }) => id !== updated.id)
+      total.value = Math.max(total.value - 1, 0)
     }
 
     return updated
