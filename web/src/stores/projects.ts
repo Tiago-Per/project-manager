@@ -39,11 +39,13 @@ export const useProjectsStore = defineStore('projects', () => {
     if (index !== -1) projects.value[index] = project
   }
 
-  async function createProject(input: ProjectInput) {
-    const project = await api.createProject(input)
-    await fetchProjects()
+  function fetchProject(id: number) {
+    return api.getProject(id)
+  }
 
-    return project
+  // The list page refetches when it opens, so the new project shows up there.
+  function createProject(input: ProjectInput) {
+    return api.createProject(input)
   }
 
   async function updateProject(id: number, input: Partial<ProjectInput>) {
@@ -82,6 +84,7 @@ export const useProjectsStore = defineStore('projects', () => {
     filters,
     fetchProjects,
     setFilters,
+    fetchProject,
     createProject,
     updateProject,
     deleteProject,

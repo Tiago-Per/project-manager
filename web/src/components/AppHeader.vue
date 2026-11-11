@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useRoute } from 'vue-router'
+
 import logoSymbol from '@/assets/icons/logo-symbol.svg'
 import searchIcon from '@/assets/icons/search.svg'
+
+const route = useRoute()
 </script>
 
 <template>
@@ -11,6 +15,7 @@ import searchIcon from '@/assets/icons/search.svg'
     </RouterLink>
 
     <button
+      v-if="route.meta.showSearch"
       type="button"
       aria-label="Buscar projetos"
       class="absolute right-2 flex size-10 items-center justify-center rounded-full hover:bg-white/10 sm:right-14"

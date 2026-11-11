@@ -33,7 +33,7 @@ watch(
       <img
         :src="(!coverFailed && project.cover_url) || coverPlaceholder"
         alt=""
-        class="rounded-t-card size-full object-cover"
+        class="rounded-t-card absolute inset-0 size-full object-cover"
         data-test="cover"
         @error="coverFailed = true"
       />

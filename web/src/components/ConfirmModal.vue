@@ -129,7 +129,7 @@ onBeforeUnmount(() => setScrollLock(false))
           <slot />
         </div>
 
-        <p v-if="error" role="alert" class="text-danger mt-4">{{ error }}</p>
+        <p v-if="error" role="alert" class="text-error mt-4">{{ error }}</p>
 
         <div class="mt-8 flex flex-col-reverse gap-4 sm:flex-row sm:gap-8">
           <AppButton
