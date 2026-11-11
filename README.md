@@ -1,94 +1,102 @@
-# Project Manager
+# Gerenciador de Projetos
 
-## Running locally with Docker
+Aplicação para listar, criar, editar, remover, favoritar e buscar projetos, com API em Ruby on Rails e frontend em Vue 3 + TypeScript.
 
-Requires Docker with Compose. From the repository root:
+- **Aplicação:** https://project-manager-eight.vercel.app
+- **API:** https://project-manager-4mry.onrender.com
+
+> A API usa o plano gratuito do Render, que desliga o serviço após 15 minutos sem acesso. O primeiro acesso pode levar cerca de um minuto.
+
+## Stack
+
+| Parte | Tecnologias |
+|---|---|
+| API (`api/`) | Ruby 4.0, Rails 8.1 (modo API), PostgreSQL, Active Storage, RSpec, FactoryBot |
+| Frontend (`web/`) | Vue 3.5 + TypeScript, Vite, Vue Router, Pinia, Tailwind CSS v4, Vitest, Vue Test Utils |
+| Deploy | Render (API), Neon (PostgreSQL), Cloudflare R2 (capas) e Vercel (frontend) |
+
+## Como rodar
+
+### Com Docker
 
 ```bash
 docker compose up --build
 ```
 
-- Web (Vite): http://localhost:5173
-- API (Rails): http://localhost:3000
+- Frontend: http://localhost:5173
+- API: http://localhost:3000
 
-Three services start:
+O código é montado nos containers, então as alterações recarregam automaticamente. Para apagar tudo e começar do zero: `docker compose down -v`.
 
-- **`db`:** PostgreSQL 18 with data in the `db-data` volume. Its port isn't published on the host,
-  so it doesn't clash with a local Postgres; connect with `docker compose exec db psql -U postgres`.
-- **`api`:** Rails in development (`api/Dockerfile.dev`). It waits for the database healthcheck,
-  runs `bin/rails db:prepare` and starts the server on `0.0.0.0:3000`.
-- **`web`:** the Vite dev server (`web/Dockerfile.dev`) on `0.0.0.0:5173`, with
-  `VITE_API_URL=http://localhost:3000`.
+### Sem Docker
 
-The source code is mounted into the containers, so changes reload. Gems live in the `bundle` volume
-and `node_modules` in the `web-node-modules` volume, so they never mix with files on your machine.
+Requisitos: Ruby 4.0, Node 22.18+ ou 24.12+ e PostgreSQL na porta 5432. A conexão local pode ser ajustada com `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USERNAME` e `DATABASE_PASSWORD`.
 
 ```bash
-# Tests inside the containers
-docker compose exec api bundle exec rspec
-docker compose exec web npm run test -- --run
-
-# Rails console
-docker compose exec api bin/rails console
-
-# After adding a gem: restart the api (it runs `bundle install` when needed)
-docker compose restart api
-
-# After changing package.json: rebuild and recreate the node_modules volume
-docker compose up --build -V web
-
-# Stop and delete everything, including the database
-docker compose down -v
+cd api && bin/rails db:prepare && bin/rails server
+cd web && npm install && npm run dev
 ```
 
-On Linux, the api container runs with user and group ID 1000 so files it writes to `api/log`,
-`api/tmp` and `api/storage` aren't owned by root. If `id -u` shows another value, run
-`USER_ID=$(id -u) GROUP_ID=$(id -g) docker compose up --build`.
-
-### Without Docker
-
-The API reads its development and test database settings from environment variables, with defaults
-for a Postgres published on `localhost:5432`:
-
-| Variable | Default |
-| --- | --- |
-| `DATABASE_HOST` | `localhost` |
-| `DATABASE_PORT` | `5432` |
-| `DATABASE_USERNAME` | `postgres` |
-| `DATABASE_PASSWORD` | `postgres` |
+## Testes
 
 ```bash
-cd api && bin/rails server   # http://localhost:3000
-cd web && npm run dev        # http://localhost:5173
+cd api && bundle exec rspec          # 113 exemplos
+cd web && npm run test -- --run      # 122 testes
 ```
 
-CORS allows `FRONTEND_URL`, which defaults to `http://localhost:5173`.
+Com Docker: `docker compose exec api bundle exec rspec` e `docker compose exec web npm run test -- --run`.
 
-## Production deployment (API)
+## API
 
-The Rails API in `api/` is deployed to Render as a Docker web service using `api/Dockerfile`.
-On boot, `bin/docker-entrypoint` runs `bin/rails db:prepare`, and Thruster serves Puma.
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/api/projects` | Lista. Parâmetros: `search`, `favorite=true`, `sort` (`name`, `recent`, `deadline`) |
+| GET | `/api/projects/:id` | Detalhe |
+| POST | `/api/projects` | Cria (multipart, com capa opcional) |
+| PATCH | `/api/projects/:id` | Atualiza (`remove_cover=true` remove a capa) |
+| DELETE | `/api/projects/:id` | Remove |
+| POST | `/api/projects/:id/favorite` | Favorita |
+| DELETE | `/api/projects/:id/favorite` | Desfavorita |
 
-- **Database:** a single PostgreSQL database on Neon (`DATABASE_URL`) holds the app tables and the
-  Solid Queue, Solid Cache and Solid Cable tables. Use Neon's direct connection string (the host
-  without `-pooler`): Rails migrations rely on advisory locks, which don't work through the pooler.
-- **Background jobs:** Solid Queue runs inside Puma in async mode (`SOLID_QUEUE_IN_PUMA`), so
-  Active Storage purge jobs run without a separate worker service.
-- **File storage:** Active Storage uses Cloudflare R2 through the S3 service. The bucket can stay
-  private: cover URLs redirect through the API to signed R2 URLs.
+Erros de validação retornam `422` com os erros por campo, e projeto inexistente retorna `404`.
 
-### Environment variables
+## Decisões técnicas
 
-| Variable | Required | Description |
-| --- | --- | --- |
-| `RAILS_MASTER_KEY` | yes | Decrypts `config/credentials.yml.enc` (holds `secret_key_base`). Value of `api/config/master.key`. |
-| `DATABASE_URL` | yes | Neon direct connection string, with `sslmode=require`. |
-| `SOLID_QUEUE_IN_PUMA` | yes | `true`: runs Solid Queue inside Puma. |
-| `FRONTEND_URL` | yes | Frontend origin allowed by CORS, e.g. `https://app.example.com` (no trailing slash). |
-| `R2_ENDPOINT` | yes | `https://<account_id>.r2.cloudflarestorage.com` |
-| `R2_BUCKET` | yes | R2 bucket name. |
-| `R2_ACCESS_KEY_ID` | yes | R2 API token access key (read/write on the bucket). |
-| `R2_SECRET_ACCESS_KEY` | yes | R2 API token secret key. |
-| `HTTP_PORT` | yes | `10000`: port Thruster listens on, matching Render's default port. |
-| `RAILS_MAX_THREADS` | no | Puma threads (default 3). The production pool is fixed at 10 connections, shared with Solid Queue's threads. |
-| `RAILS_LOG_LEVEL` | no | Log level (default `info`). |
+### Estrutura
+- **Monorepo** com `api/` e `web/`: um repositório, um README e um comando para subir tudo.
+
+### API
+- **Controllers enxutos:** a lógica de consulta fica em scopes no model, a resposta é montada por um serializer em Ruby puro e os erros são tratados uma única vez no `ApplicationController`.
+- **Busca, filtro e ordenação na API.** A busca considera só o nome do projeto, conforme o design, ignora maiúsculas e minúsculas e só é aplicada a partir de 3 caracteres.
+- **Ordenações pelas datas do projeto:** "Iniciados mais recentes" ordena pela data de início, da mais recente para a mais antiga, e "Prazo mais próximo" pela data final, da mais próxima para a mais distante. Todas usam o `id` como desempate, para a ordem não mudar entre requisições.
+- **Consultas seguras:** o termo de busca passa por `sanitize_sql_like`, e a ordenação aceita só uma lista fechada de opções, nunca o valor recebido diretamente no `order`. Um valor desconhecido volta para a ordem alfabética.
+- **N+1 evitado** na listagem com `with_attached_cover`, e índices nas colunas usadas para ordenar.
+- **Favoritar como recurso** (`POST` e `DELETE /api/projects/:id/favorite`), em vez de uma ação que inverte o valor. As operações ficam idempotentes: repetir a mesma requisição, por um clique duplo ou um retry, não muda o resultado. O campo `favorite` não é aceito no create nem no update.
+- **Validações:** campos obrigatórios no model e no banco, com `NOT NULL`. No model ficam também o nome com pelo menos duas palavras, conforme o design, e a data final não anterior à inicial, uma regra que adicionei.
+- **Capa com Active Storage**, aceitando só JPG e PNG. O tipo é identificado pelo conteúdo do arquivo, e não pela extensão, então um GIF renomeado para `.png` é rejeitado.
+- **Remoção da capa no model,** com o atributo virtual `remove_cover`. O controller continua simples, e, se a atualização falhar, a capa é mantida, porque o Active Storage só remove o arquivo depois que a transação é concluída.
+- **Strong params com `params.expect`**, do Rails 8, deixando a conversão de tipos (datas e booleanos) a cargo do próprio Rails.
+- **Poucas dependências, cada uma com um motivo:** `rspec-rails` e `factory_bot_rails` para testes, `rack-cors` para liberar o frontend em outro domínio e `aws-sdk-s3` para guardar as capas no Cloudflare R2. Considerei o **Ransack** para a busca e uma gem de serialização como o **Alba**, mas, com um único recurso e regras simples, scopes e um serializer em Ruby puro mantêm o código explícito e sem dependências extras.
+
+### Frontend
+- **Vue 3 com Composition API (`<script setup>`) e TypeScript**, com tipos que espelham o JSON da API.
+- **Organização em camadas:** só `src/api/` faz chamadas HTTP, os componentes passam sempre pela store (Pinia), e a lógica reutilizável fica em composables (`useSearchHistory`, `useDebounceFn`, `useClickOutside`).
+- **Estado da busca separado da listagem** na store, para que buscar não altere os filtros da lista. Respostas atrasadas de buscas antigas são descartadas.
+- **Tailwind CSS v4** com os tokens extraídos do Figma (cores, fontes, tamanhos, bordas e sombras) definidos em `@theme`. As classes usam só esses tokens, sem valores soltos como `bg-[#...]`, e elementos repetidos viraram componentes.
+- **Um único `ProjectForm`** para criação e edição. As validações no frontend repetem as regras da API com as mensagens do design, e os erros retornados pela API aparecem nos campos correspondentes.
+- **Datas** formatadas com `Intl.DateTimeFormat` em pt-BR e `timeZone: 'UTC'`, evitando que `2024-09-01` apareça como 31 de agosto no fuso do Brasil.
+- **Busca** a partir de 3 caracteres, com debounce de 300 ms (ou imediata com Enter), em uma rota própria (`/search?q=`), para que recarregar a página e o botão voltar funcionem.
+- **Highlight sem `v-html`:** o nome é dividido em trechos e o termo encontrado vai dentro de um `<mark>`, impedindo que um nome de projeto injete HTML.
+- **Histórico de buscas** no `localStorage`, com as 5 mais recentes, sem repetição. Quando um termo novo estende o último salvo ("Proj" → "Projeto"), ele substitui o anterior, para que a digitação não encha o histórico.
+- **Estados não previstos no design**, como busca sem resultado, filtro de favoritos vazio, erro ao carregar e projeto inexistente, seguem o estilo do estado vazio. No carregamento, a lista e a busca mostram cards de esqueleto, a edição mostra um spinner e os botões indicam o envio ("Salvando..."). Uma capa que falha ao carregar volta para o placeholder.
+- **Acessibilidade:** `aria-label` nos botões só com ícone, select de ordenação e menu do card operáveis pelo teclado, modal com `role="dialog"` e foco controlado, e campos com `<label>` e mensagens de erro associadas.
+
+### Deploy
+- **API no Render**, a partir do `Dockerfile` gerado pelo Rails 8. O Kamal veio com o Rails, mas o `config/deploy.yml` não está configurado para este deploy.
+- **Banco no Neon**, em um único banco que também guarda as tabelas do Solid Queue, do Solid Cache e do Solid Cable. O Solid Queue roda dentro do Puma, para executar a remoção das capas sem precisar de um worker separado.
+- **Capas no Cloudflare R2**, porque o plano gratuito do Render não mantém arquivos entre reinícios. O bucket é privado, e as imagens são servidas por URLs assinadas.
+- **Frontend na Vercel**, com rewrite para o Vue Router funcionar ao recarregar qualquer rota.
+
+## Uso de IA
+
+Usei o Claude Code como assistente durante o desenvolvimento: para acelerar a escrita de código e testes, revisar implementações e consultar o design pelo MCP do Figma (tokens, telas e ícones). As decisões de arquitetura e de produto foram minhas, e revisei todo o código gerado. O arquivo `CLAUDE.md` registra as convenções que o assistente seguiu.
