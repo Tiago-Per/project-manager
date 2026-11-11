@@ -35,10 +35,11 @@ watch(routeTerm, (q) => {
 })
 
 watch(
-  () => route.meta.searchMode,
-  (inSearchPage) => {
-    if (inSearchPage) return
-    // Leaving the results page (Voltar, card menu...) leaves search mode.
+  () => route.name,
+  () => {
+    if (route.meta.searchMode) return
+    // Going to any other page (Voltar, Novo projeto, Editar...) leaves search mode,
+    // also when the search was only open over the list.
     opened.value = false
     term.value = ''
     debounced.cancel()

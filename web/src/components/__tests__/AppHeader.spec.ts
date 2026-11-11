@@ -13,6 +13,7 @@ function makeRouter() {
     routes: [
       { path: '/', name: 'projects', component: Page, meta: { showSearch: true } },
       { path: '/search', name: 'search', component: Page, meta: { searchMode: true } },
+      { path: '/projects/new', name: 'project-new', component: Page },
     ],
   })
 }
@@ -178,6 +179,32 @@ describe('AppHeader search', () => {
     await flushPromises()
 
     expect(router.currentRoute.value.name).toBe('projects')
+    expect(wrapper.find('input').exists()).toBe(false)
+  })
+
+  it('closes the search when going to another page from the list', async () => {
+    const { wrapper, router } = await mountHeader()
+    await openSearch(wrapper)
+    await type(wrapper, 'Pro')
+
+    await router.push({ name: 'project-new' })
+    await flushPromises()
+
+    expect(wrapper.find('input').exists()).toBe(false)
+
+    await router.push({ name: 'projects' })
+    await flushPromises()
+
+    expect(wrapper.find('input').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Buscar projetos"]').exists()).toBe(true)
+  })
+
+  it('closes the search when leaving the results page for a form', async () => {
+    const { wrapper, router } = await mountHeader('/search?q=Projeto')
+
+    await router.push({ name: 'project-new' })
+    await flushPromises()
+
     expect(wrapper.find('input').exists()).toBe(false)
   })
 
