@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1
+# Development image used by docker-compose.yml. Production uses Dockerfile.
+
+# Make sure RUBY_VERSION matches the Ruby version in .ruby-version
+ARG RUBY_VERSION=4.0.1
+FROM docker.io/library/ruby:$RUBY_VERSION-slim
+
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y build-essential git libpq-dev libvips libyaml-dev pkg-config postgresql-client && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+# Files written to the mounted source (log, tmp, storage) belong to this user,
+# so on Linux they match the host user instead of root.
+ARG UID=1000
+ARG GID=1000
+RUN groupadd --gid $GID rails && \
+    useradd --uid $UID --gid $GID --create-home --shell /bin/bash rails
+
+ENV BUNDLE_PATH="/usr/local/bundle"
+RUN mkdir -p $BUNDLE_PATH && chown rails:rails $BUNDLE_PATH
+
+WORKDIR /rails
+USER rails
+
+COPY --chown=rails:rails Gemfile Gemfile.lock ./
+RUN bundle install
+
+EXPOSE 3000
+
+# The source code is mounted over /rails by docker-compose.yml.
+CMD ["sh", "-c", "bundle check || bundle install; rm -f tmp/pids/server.pid; bin/rails db:prepare && exec bin/rails server -b 0.0.0.0 -p 3000"]
