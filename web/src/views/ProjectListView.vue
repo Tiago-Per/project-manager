@@ -12,7 +12,7 @@ import { useProjectsStore } from '@/stores/projects'
 import type { Project, ProjectSort } from '@/types/project'
 
 const store = useProjectsStore()
-const { projects, total, loaded, error, filters } = storeToRefs(store)
+const { projects, total, loading, loaded, error, filters } = storeToRefs(store)
 
 const main = useTemplateRef<HTMLElement>('main')
 
@@ -56,7 +56,9 @@ onMounted(() => store.fetchProjects())
       <AppButton @click="store.fetchProjects()">Tentar novamente</AppButton>
     </EmptyState>
 
-    <template v-else-if="loaded">
+    <ProjectGrid v-else-if="!loaded" :projects="[]" loading />
+
+    <template v-else>
       <EmptyState
         v-if="total === 0 && !filters.favorite"
         title="Nenhum projeto"
@@ -71,6 +73,7 @@ onMounted(() => store.fetchProjects())
         <ProjectGrid
           v-if="projects.length"
           :projects="projects"
+          :loading="loading"
           @toggle-favorite="toggleFavorite"
           @remove="projectToRemove = $event"
         />

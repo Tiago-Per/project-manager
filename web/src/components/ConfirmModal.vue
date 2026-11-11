@@ -141,7 +141,7 @@ onBeforeUnmount(() => setScrollLock(false))
           >
             {{ cancelLabel }}
           </AppButton>
-          <AppButton size="lg" class="flex-1" :disabled="loading" @click="emit('confirm')">
+          <AppButton size="lg" class="flex-1" :loading="loading" @click="emit('confirm')">
             {{ confirmLabel }}
           </AppButton>
         </div>

@@ -114,6 +114,31 @@ describe('ProjectFormView', () => {
     expect(router.currentRoute.value.name).toBe('projects')
   })
 
+  it('shows a loader while the project loads', async () => {
+    vi.mocked(api.getProject).mockReturnValue(new Promise(() => {}))
+    const { wrapper } = await mountView({ id: 7 })
+
+    expect(wrapper.get('[role="status"]').text()).toBe('Carregando projeto...')
+    expect(wrapper.find('form').exists()).toBe(false)
+  })
+
+  it('shows "Salvando..." on the button while saving', async () => {
+    let resolve!: (value: Project) => void
+    vi.mocked(api.createProject).mockReturnValue(new Promise((r) => (resolve = r)))
+    const { wrapper } = await mountView()
+
+    await fill(wrapper)
+    await wrapper.get('form').trigger('submit')
+
+    const button = wrapper.get<HTMLButtonElement>('button[type="submit"]')
+    expect(button.text()).toBe('Salvando...')
+    expect(button.element.disabled).toBe(true)
+    expect(button.attributes('aria-busy')).toBe('true')
+
+    resolve(project)
+    await flushPromises()
+  })
+
   it('shows a message when the project does not exist', async () => {
     vi.mocked(api.getProject).mockRejectedValue(
       new api.ApiError(404, { error: 'Project not found' }),

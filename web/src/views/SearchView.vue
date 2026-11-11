@@ -57,9 +57,10 @@ async function onRemoved() {
     </EmptyState>
 
     <ProjectGrid
-      v-else-if="searchResults.length"
+      v-else-if="searchResults.length || searchLoading"
       class="mt-6"
       :projects="searchResults"
+      :loading="searchLoading"
       :highlight="searchTerm ?? ''"
       @toggle-favorite="toggleFavorite"
       @remove="projectToRemove = $event"

@@ -65,6 +65,15 @@ describe('SearchView', () => {
     expect(wrapper.get('article h2 mark').text()).toBe('Projeto')
   })
 
+  it('shows skeleton cards while searching', async () => {
+    vi.mocked(api.listProjects).mockReturnValue(new Promise(() => {}))
+
+    const wrapper = await mountView('Projeto')
+
+    expect(wrapper.get('[aria-label="Carregando projetos"]').attributes('aria-busy')).toBe('true')
+    expect(wrapper.text()).not.toContain('Nenhum projeto encontrado')
+  })
+
   it('shows a message when nothing matches', async () => {
     vi.mocked(api.listProjects).mockResolvedValue({ projects: [], meta: { total: 0 } })
 

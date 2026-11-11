@@ -148,8 +148,8 @@ function onSubmit() {
       @update:file="updateCover"
     />
 
-    <AppButton type="submit" size="lg" class="w-full" :disabled="!isValid || submitting">
-      Salvar projeto
+    <AppButton type="submit" size="lg" class="w-full" :disabled="!isValid" :loading="submitting">
+      {{ submitting ? 'Salvando...' : 'Salvar projeto' }}
     </AppButton>
   </form>
 </template>

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 
 import BackLink from '@/components/BackLink.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import LoadingState from '@/components/LoadingState.vue'
 import ProjectForm from '@/components/ProjectForm.vue'
 import { ApiError } from '@/api/projects'
 import { useProjectsStore } from '@/stores/projects'
@@ -71,8 +72,9 @@ async function save(input: ProjectInput) {
     <BackLink />
     <h1 class="text-heading text-title mt-3">{{ title }}</h1>
 
+    <LoadingState v-if="loadState === 'loading'" class="mt-8" label="Carregando projeto..." />
     <EmptyState
-      v-if="loadState === 'not-found'"
+      v-else-if="loadState === 'not-found'"
       class="mt-8"
       title="Projeto não encontrado"
       description="Ele pode ter sido removido. Volte para a lista de projetos."

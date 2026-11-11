@@ -30,6 +30,35 @@ beforeEach(() => {
 })
 
 describe('ProjectListView', () => {
+  it('shows skeleton cards until the projects load', async () => {
+    let resolve!: (value: Awaited<ReturnType<typeof api.listProjects>>) => void
+    vi.mocked(api.listProjects).mockReturnValue(new Promise((r) => (resolve = r)))
+
+    const wrapper = await mountView()
+
+    expect(wrapper.get('[aria-label="Carregando projetos"]').attributes('aria-busy')).toBe('true')
+    expect(wrapper.find('h1').exists()).toBe(false)
+
+    resolve({ projects: [project], meta: { total: 1 } })
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Carregando projetos"]').exists()).toBe(false)
+    expect(wrapper.findAll('article')).toHaveLength(1)
+  })
+
+  it('keeps the cards busy while a filter reloads them', async () => {
+    vi.mocked(api.listProjects)
+      .mockResolvedValueOnce({ projects: [project], meta: { total: 1 } })
+      .mockReturnValueOnce(new Promise(() => {}))
+
+    const wrapper = await mountView()
+    await wrapper.get('[role="switch"]').trigger('click')
+
+    const grid = wrapper.findAll('ul').find((list) => list.find('article').exists())!
+    expect(grid.findAll('article')).toHaveLength(1)
+    expect(grid.attributes('aria-busy')).toBe('true')
+  })
+
   it('shows the toolbar with the total and the project cards', async () => {
     vi.mocked(api.listProjects).mockResolvedValue({ projects: [project], meta: { total: 9 } })
 
