@@ -40,7 +40,7 @@ cd web && npm install && npm run dev
 ## Testes
 
 ```bash
-cd api && bundle exec rspec          # 113 exemplos
+cd api && bundle exec rspec          # 120 exemplos
 cd web && npm run test -- --run      # 122 testes
 ```
 
@@ -72,6 +72,7 @@ Erros de validação retornam `422` com os erros por campo, e projeto inexistent
   - "Iniciados mais recentes" mostra primeiro os projetos que já começaram, do início mais recente para o mais antigo, e depois os que ainda vão começar, do mais próximo para o mais distante.
   - "Prazo mais próximo" mostra primeiro os projetos ainda no prazo, da data final mais próxima para a mais distante, e depois os já finalizados, do mais recente para o mais antigo. Assim, um prazo vencido não aparece como "o mais próximo".
   - O "hoje" segue o fuso `America/Sao_Paulo`, e todas as ordenações usam o `id` como desempate, para a ordem não mudar entre requisições.
+- **Total da listagem:** o `meta.total` conta os projetos retornados depois dos filtros. Com o filtro de favoritos ativo, o título mostra quantos favoritos existem, acompanhando a lista exibida, em vez do total de projetos cadastrados.
 - **Consultas seguras:** o termo de busca passa por `sanitize_sql_like`, e a ordenação aceita só uma lista fechada de opções, nunca o valor recebido diretamente no `order`. Um valor desconhecido volta para a ordem alfabética.
 - **N+1 evitado** na listagem com `with_attached_cover`, e índices nas colunas usadas para ordenar.
 - **Favoritar como recurso** (`POST` e `DELETE /api/projects/:id/favorite`), em vez de uma ação que inverte o valor. As operações ficam idempotentes: repetir a mesma requisição, por um clique duplo ou um retry, não muda o resultado. O campo `favorite` não é aceito no create nem no update.
@@ -99,6 +100,14 @@ Erros de validação retornam `422` com os erros por campo, e projeto inexistent
 - **Banco no Neon**, em um único banco que também guarda as tabelas do Solid Queue, do Solid Cache e do Solid Cable. O Solid Queue roda dentro do Puma, para executar a remoção das capas sem precisar de um worker separado.
 - **Capas no Cloudflare R2**, porque o plano gratuito do Render não mantém arquivos entre reinícios. O bucket é privado, e as imagens são servidas por URLs assinadas.
 - **Frontend na Vercel**, com rewrite para o Vue Router funcionar ao recarregar qualquer rota.
+
+## Limitações e próximos passos
+
+- **Busca sem considerar acentos:** a busca ignora maiúsculas e minúsculas, mas não acentos ("projeto" não encontra "projéto"). A extensão `unaccent` do PostgreSQL resolveria.
+- **Mensagens da API em inglês:** os erros de validação (`422`) usam as mensagens padrão do Rails. O formulário valida antes de enviar, então elas raramente aparecem, e uma tradução para pt-BR resolveria.
+- **Sem paginação:** a listagem retorna todos os projetos, o que basta para o escopo do teste. Com muitos projetos, o próximo passo seria paginar na API.
+- **Formato da data no formulário:** o campo de data é o nativo do navegador, então o formato segue o idioma do navegador (dd/mm/aaaa em português).
+- **Sem CI:** os testes rodam localmente e no Docker. O próximo passo seria um workflow rodando `rspec` e `vitest` a cada push.
 
 ## Uso de IA
 
