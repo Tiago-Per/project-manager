@@ -1,5 +1,10 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import AppHeader from '@/components/AppHeader.vue'
+</script>
 
 <template>
-  <RouterView />
+  <div class="flex min-h-dvh flex-col">
+    <AppHeader />
+    <RouterView />
+  </div>
 </template>

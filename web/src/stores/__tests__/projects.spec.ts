@@ -35,6 +35,16 @@ describe('projects store', () => {
     expect(store.loading).toBe(false)
   })
 
+  it('marks the list as loaded after the first successful fetch', async () => {
+    vi.mocked(api.listProjects).mockResolvedValue({ projects: [], meta: { total: 0 } })
+    const store = useProjectsStore()
+    expect(store.loaded).toBe(false)
+
+    await store.fetchProjects()
+
+    expect(store.loaded).toBe(true)
+  })
+
   it('stores the error when loading fails', async () => {
     const failure = new Error('network')
     vi.mocked(api.listProjects).mockRejectedValue(failure)
@@ -44,6 +54,7 @@ describe('projects store', () => {
 
     expect(store.error).toBe(failure)
     expect(store.loading).toBe(false)
+    expect(store.loaded).toBe(false)
   })
 
   it('merges filters and refetches', async () => {

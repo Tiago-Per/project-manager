@@ -8,6 +8,7 @@ export const useProjectsStore = defineStore('projects', () => {
   const projects = ref<Project[]>([])
   const total = ref(0)
   const loading = ref(false)
+  const loaded = ref(false)
   const error = ref<unknown>(null)
   const filters = ref<ProjectFilters>({ search: '', favorite: false, sort: 'name' })
 
@@ -19,6 +20,7 @@ export const useProjectsStore = defineStore('projects', () => {
       const response = await api.listProjects(filters.value)
       projects.value = response.projects
       total.value = response.meta.total
+      loaded.value = true
     } catch (e) {
       error.value = e
     } finally {
@@ -75,6 +77,7 @@ export const useProjectsStore = defineStore('projects', () => {
     projects,
     total,
     loading,
+    loaded,
     error,
     filters,
     fetchProjects,
